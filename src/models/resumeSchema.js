@@ -2,6 +2,11 @@ const { Schema, model } = require("mongoose");
 
 const ResumeSchema = new Schema(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     fullName: {
       type: String,
       required: true,
@@ -12,6 +17,7 @@ const ResumeSchema = new Schema(
     },
     email: {
       type: String,
+
       required: true,
     },
     phone: {
