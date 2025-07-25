@@ -7,7 +7,9 @@ const User = require("../models/userSchema");
 const app = express();
 const jwtkey =
   process.env.JWT_KEY || "Aj1NcGsHnYP7a0xEVkpR1u3ka9x9Kv9J4xZKDFqwT+M=";
-console.log(">>>>JWT_KEY:", process.env.JWT_KEY);
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+console.log(client);
 
 const createOrUpdateUser = async (req, res) => {
   try {
@@ -65,8 +67,10 @@ const createOrUpdateUser = async (req, res) => {
 };
 
 const logIn = async (req, resp) => {
+  console.log(">>>>logIn called with body:", req.body);
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return resp.status(400).send({
         success: false,
@@ -81,36 +85,26 @@ const logIn = async (req, resp) => {
         message: "Invalid email or password!",
       });
     }
-    user.lastLogin = new Date();
-    user.isUserLoggedIn = true;
-    await user.save();
+    const payload = { userId: user._id, email: user.email };
 
-    const loginUser = {
-      name: user.name,
-      email: user.email,
-      isUserLoggedIn: true,
-    };
+    jwt.sign(payload, jwtkey, { expiresIn: "1h" }, (err, token) => {
+      if (err)
+        return resp
+          .status(500)
+          .json({ success: false, message: "Token error", error: err });
 
-    jwt.sign(
-      { userId: user._id, email: user.email },
-      jwtkey,
-      { expiresIn: "1h" },
-      (err, token) => {
-        if (err) {
-          return resp.status(500).send({
-            success: false,
-            message: "Error generating token",
-            error: err.message,
-          });
-        }
-        resp.status(200).send({
-          success: true,
-          message: "User logged in successfully ✅",
-          token,
-          data: loginUser,
-        });
-      }
-    );
+      resp.status(200).send({
+        success: true,
+        message: "User logged in successfully ✅",
+        token,
+        data: {
+          name: user.name,
+
+          email: user.email,
+          reg_time: user.reg_time,
+        },
+      });
+    });
   } catch (error) {
     return resp.status(501).send({
       success: false,
@@ -121,20 +115,72 @@ const logIn = async (req, resp) => {
 };
 
 const isUserLoggedIn = async (req, res) => {
-  console.log(req.user, "User is logged in");
-  if (req.user) {
-    console.log(req.user, "User is logged in");
+  try {
+    // console.log(">>>>isUserLoggedIn called with user:", req.user, req);
+    if (!req.user) {
+      return res.status(401).json({
+        isUserLoggedIn: false,
+        message: "User is not logged in ❌",
+      });
+    }
+    const userId = req.user.userId || req.user.id;
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        isUserLoggedIn: false,
+        message: "User not found ❌",
+      });
+    }
+
     return res.status(200).json({
       isUserLoggedIn: true,
       message: "User is logged in ✅",
-      user: req.user,
+      user,
     });
-  } else {
-    return res.status(401).json({
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
       isUserLoggedIn: false,
-      message: "User is not logged in ❌",
+      message: "Server error ❌",
     });
   }
 };
 
-module.exports = { createOrUpdateUser, logIn, isUserLoggedIn };
+googleLogin = async (req, res) => {
+  // console.log(">>>>googleLogin called with body:", req.body);
+
+  try {
+    const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ message: "ID token missing" });
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload?.email;
+    const name = payload?.name;
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({ email, name });
+    }
+
+    const token = jwt.sign({ id: user._id }, jwtkey, {
+      expiresIn: "30sec",
+    });
+
+    res.json({
+      token,
+      data: user,
+      message: "Google login successful",
+    });
+  } catch (error) {
+    console.error("Google login error:", error);
+    res.status(500).json({ message: "Google login failed", error });
+  }
+};
+module.exports = { createOrUpdateUser, logIn, isUserLoggedIn, googleLogin };
