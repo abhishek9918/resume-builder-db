@@ -9,7 +9,6 @@ const jwtkey =
   process.env.JWT_KEY || "Aj1NcGsHnYP7a0xEVkpR1u3ka9x9Kv9J4xZKDFqwT+M=";
 const { OAuth2Client } = require("google-auth-library");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-console.log(client);
 
 const createOrUpdateUser = async (req, res) => {
   try {
@@ -67,7 +66,6 @@ const createOrUpdateUser = async (req, res) => {
 };
 
 const logIn = async (req, resp) => {
-  console.log(">>>>logIn called with body:", req.body);
   try {
     const { email, password } = req.body;
 
@@ -99,9 +97,9 @@ const logIn = async (req, resp) => {
         token,
         data: {
           name: user.name,
-
           email: user.email,
           reg_time: user.reg_time,
+          _id: user._id,
         },
       });
     });
@@ -116,7 +114,7 @@ const logIn = async (req, resp) => {
 
 const isUserLoggedIn = async (req, res) => {
   try {
-    // console.log(">>>>isUserLoggedIn called with user:", req.user, req);
+    //
     if (!req.user) {
       return res.status(401).json({
         isUserLoggedIn: false,
@@ -147,8 +145,8 @@ const isUserLoggedIn = async (req, res) => {
   }
 };
 
-googleLogin = async (req, res) => {
-  // console.log(">>>>googleLogin called with body:", req.body);
+const googleLogin = async (req, res) => {
+  //
 
   try {
     const { idToken } = req.body;
@@ -170,12 +168,12 @@ googleLogin = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id }, jwtkey, {
-      expiresIn: "30sec",
+      expiresIn: "1h",
     });
 
     res.json({
       token,
-      data: user,
+      user: user,
       message: "Google login successful",
     });
   } catch (error) {

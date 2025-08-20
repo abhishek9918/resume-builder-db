@@ -2,6 +2,11 @@ const { Schema, model } = require("mongoose");
 
 const ResumeSchema = new Schema(
   {
+    resumeName: {
+      type: String,
+      required: true,
+    },
+
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -28,7 +33,15 @@ const ResumeSchema = new Schema(
       type: String,
       required: true,
     },
-    experiences: [
+
+    projectsArray: [
+      {
+        title: String,
+        duration: String,
+        description: String,
+      },
+    ],
+    experiencesArray: [
       {
         company: String,
         position: String,
@@ -37,17 +50,16 @@ const ResumeSchema = new Schema(
         description: String,
       },
     ],
-    projectsArray: [
+    educationsArray: [
       {
-        title: String,
-        duration: String,
-        description: String,
+        institution: String,
+        degree: String,
+        startDate: String,
+        endDate: String,
       },
     ],
-    languagesArray: {
-      type: [String],
-      default: [],
-    },
+    languagesArray: [{ language: String, level: String }],
+
     skills: {
       type: [String],
       default: [],

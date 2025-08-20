@@ -8,11 +8,14 @@ const UserRoutes = require("./src/routes/userRoutes");
 const app = express();
 
 const PORT = process.env.PORT || 3132;
-console.log(PORT, "ppp");
 
 app.use(express.json());
 app.use(cors());
-
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+  next();
+});
 app.use("/resumes", ResumeRoutes);
 app.use("/users", UserRoutes);
 

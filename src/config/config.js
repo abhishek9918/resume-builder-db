@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
 const URL = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/resume_builder";
+console.log("Connecting to MongoDB at:", URL);
 
 mongoose
   .connect(URL, {
